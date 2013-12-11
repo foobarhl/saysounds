@@ -64,7 +64,7 @@ User Commands:
 
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "4.0.8"
+#define PLUGIN_VERSION "4.0.8foobar1"
 
 //*****************************************************************
 //	------------------------------------------------------------- *
@@ -203,7 +203,7 @@ new bool:g_bPlayedEvent2Client[MAXPLAYERS+1] = false;
 public Plugin:myinfo = 
 {
 	name = "Say Sounds (including Hybrid Edition)",
-	author = "Hell Phoenix|Naris|FernFerret|Uberman|psychonic|edgecom|woody|Miraculix|gH0sTy",
+	author = "Hell Phoenix|Naris|FernFerret|Uberman|psychonic|edgecom|woody|Miraculix|gH0sTy|[foo]bar",
 	description = "Say Sounds and Action Sounds packaged into one neat plugin! Welcome to the new day of SaySounds Hybrid!",
 	version = PLUGIN_VERSION,
 	url = "http://forums.alliedmods.net/showthread.php?t=82220"
@@ -1624,6 +1624,9 @@ Send_Sound(client, const String:filelocation[], const String:name[], bool:joinso
 	else if (delay > 60.0)
 		delay = 60.0;
 
+
+	new bool:fromplayer = bool:KvGetNum(listfile, "fromplayer", true);
+
 	new Handle:pack;
 	CreateDataTimer(delay,Play_Sound_Timer,pack, TIMER_FLAG_NO_MAPCHANGE);
 	WritePackCell(pack, client);
@@ -1638,11 +1641,12 @@ Send_Sound(client, const String:filelocation[], const String:name[], bool:joinso
 	WritePackCell(pack, tmp_joinsound);
 	WritePackString(pack, txtmsg);
 	WritePackString(pack, accflags);
+	WritePackCell(pack, fromplayer);
 	ResetPack(pack);
 }
 
 	//####### Play Sound #######
-Play_Sound(const String:filelocation[], Float:volume)
+Play_Sound(const String:filelocation[], Float:volume, fromentity = SOUND_FROM_PLAYER)
 {
 	new clientlist[MAXPLAYERS+1];
 	new clientcount = 0;
@@ -1658,7 +1662,7 @@ Play_Sound(const String:filelocation[], Float:volume)
 		}
 	}
 	if (clientcount)
-		PrepareAndEmitSound(clientlist, clientcount, filelocation, .volume=volume);
+		PrepareAndEmitSound(clientlist, clientcount, filelocation, .entity = fromentity, .volume=volume);
 }
 
 //*****************************************************************
@@ -1689,6 +1693,8 @@ public Action:Play_Sound_Timer(Handle:timer,Handle:pack)
 	new joinsound = ReadPackCell(pack);
 	ReadPackString(pack, txtmsg , sizeof(txtmsg));
 	ReadPackString(pack, accflags , sizeof(accflags));
+
+	new bool:fromplayer = bool:ReadPackCell(pack);
 
 	/* ####FernFerret#### */
 	// Checks for Action Only sounds and messages user telling them why they can't play an action only sound
@@ -1845,7 +1851,7 @@ public Action:Play_Sound_Timer(Handle:timer,Handle:pack)
 		}
 		else
 		{
-			Play_Sound(filelocation, volume);
+			Play_Sound(filelocation, volume, (fromplayer == true ? client : SOUND_FROM_PLAYER));
 			LastPlayedSound = name;
 			if (name[0] && IsValidClient(client))
 			{
